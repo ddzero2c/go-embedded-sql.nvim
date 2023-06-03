@@ -51,6 +51,7 @@
         "/Users/ryder/.local/share/nvim/plugged/cmp-nvim-lsp-signature-help/after",
         "/Users/ryder/.local/share/nvim/plugged/cmp-dictionary/after",
         "/Users/ryder/.local/share/nvim/plugged/playground/after",
-        "${3rd}/luassert/library"
+        "${3rd}/luassert/library",
+        "${3rd}/luv/library"
     ]
 }

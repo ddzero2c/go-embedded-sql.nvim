@@ -1,6 +1,5 @@
 local api = vim.api
 local ts_utils = require 'nvim-treesitter.ts_utils'
-local json = require 'json'
 
 local M = {}
 
@@ -19,12 +18,12 @@ function M.format_sql()
     local options = {}
     local f = io.open('sqlformat.json', 'r')
     if f then
-        options = json.decode(f:read('*all'))
+        options = vim.fn.json_decode(f:read('*all'))
         f:close()
     end
 
     -- Convert options to a string that can be passed to Node.js.
-    local options_str = json.encode(options):gsub('"', '\\"')
+    local options_str = vim.fn.json_encode(options):gsub('"', '\\"')
 
     parser:for_each_tree(function(tstree)
         ts_utils.iterate_nodes(tstree:root(), function(node, _, _)

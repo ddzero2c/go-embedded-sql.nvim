@@ -17,6 +17,7 @@ You can install this plugin with a plugin manager like `vim-plug`. Add the follo
 
 ```vim
 Plug 'ddzero2c/sqlfmt.nvim', { 'do': './install_sql_formatter.sh' }
+nnoremap <silent> <leader>sf :lua require('sqlfmt').format_sql()<CR>
 ```
 
 After adding the line, run :PlugInstall in NeoVim to install the plugin.
