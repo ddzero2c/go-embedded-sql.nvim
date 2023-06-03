@@ -9,6 +9,15 @@ local function is_sql_string(node)
         src:find('UPDATE') or src:find('DELETE')
 end
 
+local function traverse_tree(node, action)
+    if node:type() == 'raw_string_lit' then
+        action(node)
+    end
+    for child in node:iter_children() do
+        traverse_tree(child, action)
+    end
+end
+
 function M.format_sql()
     local bufnr = api.nvim_get_current_buf()
     local ft = api.nvim_buf_get_option(bufnr, 'filetype')
@@ -26,20 +35,17 @@ function M.format_sql()
     local options_str = vim.fn.json_encode(options):gsub('"', '\\"')
 
     parser:for_each_tree(function(tstree)
-        -- Use ts_utils.traverse_tree instead of ts_utils.iterate_nodes.
-        ts_utils.traverse_tree(tstree:root(), {
-            raw_string_lit = function(node, tree)
-                if is_sql_string(node) then
-                    local sql_string = ts_utils.get_node_text(node)[1]
-                    sql_string = sql_string:sub(2, -2)
-                    -- Pass options to sql-formatter.
-                    local formatted_sql = vim.fn.system(string.format(
-                        'node -e "const sqlFormatter = require(\'sql-formatter\'); console.log(sqlFormatter.format(\'%s\', %s))"',
-                        sql_string, options_str))
-                    ts_utils.update_selection(bufnr, node, '`' .. formatted_sql .. '`')
-                end
-            end,
-        })
+        traverse_tree(tstree:root(), function(node)
+            if is_sql_string(node) then
+                local sql_string = ts_utils.get_node_text(node)[1]
+                sql_string = sql_string:sub(2, -2)
+                -- Pass options to sql-formatter.
+                local formatted_sql = vim.fn.system(string.format(
+                    'node -e "const sqlFormatter = require(\'sql-formatter\'); console.log(sqlFormatter.format(\'%s\', %s))"',
+                    sql_string, options_str))
+                ts_utils.update_selection(bufnr, node, '`' .. formatted_sql .. '`')
+            end
+        end)
     end)
 end
 
