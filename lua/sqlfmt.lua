@@ -26,17 +26,20 @@ function M.format_sql()
     local options_str = vim.fn.json_encode(options):gsub('"', '\\"')
 
     parser:for_each_tree(function(tstree)
-        ts_utils.iterate_nodes(tstree:root(), function(node, _, _)
-            if node:type() == 'raw_string_lit' and is_sql_string(node) then
-                local sql_string = ts_utils.get_node_text(node)[1]
-                sql_string = sql_string:sub(2, -2)
-                -- Pass options to sql-formatter.
-                local formatted_sql = vim.fn.system(string.format(
-                    'node -e "const sqlFormatter = require(\'sql-formatter\'); console.log(sqlFormatter.format(\'%s\', %s))"',
-                    sql_string, options_str))
-                ts_utils.update_selection(bufnr, node, '`' .. formatted_sql .. '`')
-            end
-        end)
+        -- Use ts_utils.traverse_tree instead of ts_utils.iterate_nodes.
+        ts_utils.traverse_tree(tstree:root(), {
+            raw_string_lit = function(node, tree)
+                if is_sql_string(node) then
+                    local sql_string = ts_utils.get_node_text(node)[1]
+                    sql_string = sql_string:sub(2, -2)
+                    -- Pass options to sql-formatter.
+                    local formatted_sql = vim.fn.system(string.format(
+                        'node -e "const sqlFormatter = require(\'sql-formatter\'); console.log(sqlFormatter.format(\'%s\', %s))"',
+                        sql_string, options_str))
+                    ts_utils.update_selection(bufnr, node, '`' .. formatted_sql .. '`')
+                end
+            end,
+        })
     end)
 end
 
