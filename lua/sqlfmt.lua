@@ -43,7 +43,15 @@ function M.format_sql()
                 local formatted_sql = vim.fn.system(string.format(
                     'node -e "const sqlFormatter = require(\'sql-formatter\'); console.log(sqlFormatter.format(\'%s\', %s))"',
                     sql_string, options_str))
-                ts_utils.update_selection(bufnr, node, '`' .. formatted_sql .. '`')
+
+                -- get the start and end row of the current node
+                local start_row, _, end_row, _ = node:range()
+
+                -- split the formatted SQL into lines
+                local formatted_lines = vim.split(formatted_sql, '\n', true)
+
+                -- update the lines in the buffer
+                api.nvim_buf_set_lines(bufnr, start_row, end_row + 1, false, formatted_lines)
             end
         end)
     end)
