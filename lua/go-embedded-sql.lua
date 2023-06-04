@@ -74,4 +74,54 @@ function M.format_sql()
     end
 end
 
+function M.format_sql_visual()
+    local bufnr = vim.api.nvim_get_current_buf()
+
+    if vim.bo[bufnr].filetype ~= "go" then
+        vim.notify("can only be used in go")
+        return
+    end
+
+    local start_row, start_col = unpack(vim.api.nvim_buf_get_mark(bufnr, '<'))
+    local end_row, end_col = unpack(vim.api.nvim_buf_get_mark(bufnr, '>'))
+
+    -- Convert to 0-indexed
+    start_row = start_row - 1
+    end_row = end_row - 1
+
+    local sql_string
+    local formatted
+
+    -- Single line selection
+    if start_row == end_row then
+        sql_string = vim.api.nvim_buf_get_text(bufnr, start_row, start_col, end_row, end_col + 1, {})[1]
+        formatted = formatter(sql_string)
+        if sql_string ~= formatted then
+            -- Replace the original string with the formatted string
+            local full_line = vim.api.nvim_buf_get_lines(bufnr, start_row, start_row + 1, false)[1]
+            local pre_string = full_line:sub(1, start_col)
+            local post_string = full_line:sub(end_col + 2) -- +2 to keep the last backtick (`)
+            -- Combine new lines
+            local new_lines = { pre_string }
+            for s in string.gmatch(formatted, "[^\n]+") do
+                table.insert(new_lines, s)
+            end
+            table.insert(new_lines, post_string)
+            -- Replace the original lines with new lines
+            vim.api.nvim_buf_set_lines(bufnr, start_row, start_row + 1, false, new_lines)
+        end
+    else -- Multi-line selection
+        local lines = vim.api.nvim_buf_get_lines(bufnr, start_row, end_row + 1, false)
+        lines[1] = lines[1]:sub(start_col + 1)
+        lines[#lines] = lines[#lines]:sub(1, end_col)
+        sql_string = table.concat(lines, "\n")
+
+        formatted = formatter(sql_string):sub(0, -2)
+        if sql_string ~= formatted then
+            vim.api.nvim_buf_set_lines(bufnr, start_row, end_row + 1, false, vim.split(formatted, "\n"))
+        end
+    end
+end
+
 return M
+
