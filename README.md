@@ -9,7 +9,6 @@ Install the plugin using your preferred package manager for neovim. For example,
 
 ```vim
 Plug 'ddzero2c/go-embedded-sql'
-nnoremap <silent> <leader>sf :lua require('go-embedded-sql').format_sql()<CR>
 ```
 
 ## Usage
