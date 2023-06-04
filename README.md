@@ -13,7 +13,7 @@ Plug 'ddzero2c/go-embedded-sql'
 
 ## Usage
 ```vim
-:lua require('sqlfmt').format_sql()
+:lua require('go-embedded-sql').format_sql()
 ```
 
 or you could set keymap like this:
