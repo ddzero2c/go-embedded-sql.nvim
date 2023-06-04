@@ -8,8 +8,8 @@ Install the sql-formatter tool globally on your system.
 Install the plugin using your preferred package manager for neovim. For example, using vim-plug:
 
 ```vim
-Plug 'username/neovim-sql-formatter'
-nnoremap <silent> <leader>sf :lua require('sqlfmt').format_sql()<CR>
+Plug 'ddzero2c/go-embedded-sql'
+nnoremap <silent> <leader>sf :lua require('go-embedded-sql').format_sql()<CR>
 ```
 
 ## Usage
