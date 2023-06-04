@@ -23,7 +23,7 @@ vim.api.nvim_buf_set_keymap(bufnr, 'n', '<leader>sf', ':lua require("go-embedded
 ```
 
 ## Configuration
-You can customize the output of sql-formatter by creating a .sqlformat.json file in your project's root directory. For example:
+You can customize the output of sql-formatter by creating a .sql-formatter.json file in your project's root directory. For example:
 
 ```json
 {
