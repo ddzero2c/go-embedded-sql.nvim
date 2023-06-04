@@ -11,14 +11,15 @@ Install the plugin using your preferred package manager for neovim. For example,
 Plug 'ddzero2c/go-embedded-sql'
 ```
 
-```lua
-vim.api.nvim_buf_set_keymap(bufnr, 'v', '<leader>sf', ':lua require("go-embedded-sql").format_sql_visual()<CR>', opts)
-vim.api.nvim_buf_set_keymap(bufnr, 'n', '<leader>sf', ':lua require("go-embedded-sql").format_sql()<CR>', opts)
-```
-
 ## Usage
 ```vim
 :lua require('sqlfmt').format_sql()
+```
+
+or you could set keymap like this:
+```lua
+vim.api.nvim_buf_set_keymap(bufnr, 'v', '<leader>sf', ':lua require("go-embedded-sql").format_sql_visual()<CR>', opts)
+vim.api.nvim_buf_set_keymap(bufnr, 'n', '<leader>sf', ':lua require("go-embedded-sql").format_sql()<CR>', opts)
 ```
 
 ## Configuration
