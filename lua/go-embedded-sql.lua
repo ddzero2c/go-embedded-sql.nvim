@@ -23,7 +23,7 @@ end
 
 local function formatter(str)
     -- check for local config
-    local config_file_path = vim.fn.getcwd() .. "/.sqlformat"
+    local config_file_path = vim.fn.getcwd() .. "/.sql-formatter.json"
 
     -- If the file exists, add the --config flag to the command
     local config = ""
