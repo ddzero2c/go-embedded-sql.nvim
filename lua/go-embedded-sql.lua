@@ -21,56 +21,53 @@ local get_root = function(bufnr)
     return tree:root()
 end
 
-local function formatter(str)
-    -- check for local config
+local run_formatter = function(lines)
+    -- local result = table.concat(vim.list_slice(split, 2, #split - 1), "\n")
+    local result = table.concat(lines, "\n")
     local config_file_path = vim.fn.getcwd() .. "/.sql-formatter.json"
-
-    -- If the file exists, add the --config flag to the command
-    local config = ""
-    if vim.fn.filereadable(config_file_path) == 1 then
-        config = "--config " .. config_file_path
-    end
-
-    local handle = io.popen("echo '" .. str .. "' | sql-formatter " .. config)
-    local result = handle:read("*a")
-    local success, _, code = handle:close()
-    if not success then
-        vim.notify("Failed to format SQL. Exit code: " .. tostring(code), vim.log.levels.ERROR)
-        return str
-    end
-
-    return result
+    local j = require("plenary.job"):new {
+        command = "sql-formatter",
+        args = { "--config", config_file_path },
+        writer = { result },
+    }
+    return j:sync()
 end
 
-function M.format_sql()
-    local bufnr = vim.api.nvim_get_current_buf()
+function M.format_sql(bufnr)
+    local bufnr = bufnr or vim.api.nvim_get_current_buf()
 
     if vim.bo[bufnr].filetype ~= "go" then
         vim.notify("can only be used in go")
         return
     end
 
+    local changes = {}
     local root = get_root(bufnr)
     for id, node in embedded_sql:iter_captures(root, bufnr, 0, -1) do
         local name = embedded_sql.captures[id]
         if name == "sql" then
             local range = { node:range() }
-            local sql_string = vim.treesitter.get_node_text(node, bufnr):sub(2, -2)
+            local text = vim.treesitter.get_node_text(node, bufnr):gsub('`', '')
+            local lines = vim.split(text, "\n")
 
-            local formatted = formatter(sql_string)
-            if sql_string == formatted then
-                -- Skip this node if the SQL didn't change
-                goto continue
-            end
-
-            local lines = {}
-            for s in string.gmatch(formatted, "[^\n]+") do
-                table.insert(lines, s)
-            end
-
-            vim.api.nvim_buf_set_lines(bufnr, range[1] + 1, range[3], false, lines)
+            local formatted = run_formatter(lines)
+            table.insert(formatted, 1, "")
+            table.insert(changes, 1, {
+                start_row = range[1],
+                start_col = range[2] + 1,
+                end_row = range[3],
+                end_col = range[4] - 1,
+                start = range[1] + 1,
+                final = range[3],
+                formatted = formatted
+            })
         end
-        ::continue::
+    end
+
+    for _, change in ipairs(changes) do
+        -- vim.api.nvim_buf_set_lines(bufnr, change.start, change.final, false, change.formatted)
+        vim.api.nvim_buf_set_text(bufnr, change.start_row, change.start_col, change.end_row, change.end_col,
+            change.formatted)
     end
 end
 
@@ -84,6 +81,8 @@ function M.format_sql_visual()
 
     local start_row, start_col = unpack(vim.api.nvim_buf_get_mark(bufnr, '<'))
     local end_row, end_col = unpack(vim.api.nvim_buf_get_mark(bufnr, '>'))
+    print(start_row, start_col, end_row, end_col)
+    -- 2147483647
 
     -- Convert to 0-indexed
     start_row = start_row - 1
@@ -94,34 +93,27 @@ function M.format_sql_visual()
 
     -- Single line selection
     if start_row == end_row then
-        sql_string = vim.api.nvim_buf_get_text(bufnr, start_row, start_col, end_row, end_col + 1, {})[1]
-        formatted = formatter(sql_string)
-        if sql_string ~= formatted then
-            -- Replace the original string with the formatted string
-            local full_line = vim.api.nvim_buf_get_lines(bufnr, start_row, start_row + 1, false)[1]
-            local pre_string = full_line:sub(1, start_col)
-            local post_string = full_line:sub(end_col + 2) -- +2 to keep the last backtick (`)
-            -- Combine new lines
-            local new_lines = { pre_string }
-            for s in string.gmatch(formatted, "[^\n]+") do
-                table.insert(new_lines, s)
-            end
-            table.insert(new_lines, post_string)
-            -- Replace the original lines with new lines
-            vim.api.nvim_buf_set_lines(bufnr, start_row, start_row + 1, false, new_lines)
+        if end_col == 2147483647 then
+            sql_lines = vim.api.nvim_buf_get_lines(bufnr, start_row, start_row + 1, false)
+        else
+            sql_lines = vim.api.nvim_buf_get_text(bufnr, start_row, start_col, end_row, end_col + 1, {})
         end
+        formatted = run_formatter(sql_lines)
+        if #formatted > 1 then
+            table.insert(formatted, 1, "")
+        end
+        vim.api.nvim_buf_set_text(bufnr, start_row, start_col, end_row, start_col + #sql_lines[1],
+            formatted)
     else -- Multi-line selection
-        local lines = vim.api.nvim_buf_get_lines(bufnr, start_row, end_row + 1, false)
-        lines[1] = lines[1]:sub(start_col + 1)
-        lines[#lines] = lines[#lines]:sub(1, end_col)
-        sql_string = table.concat(lines, "\n")
-
-        formatted = formatter(sql_string):sub(0, -2)
-        if sql_string ~= formatted then
-            vim.api.nvim_buf_set_lines(bufnr, start_row, end_row + 1, false, vim.split(formatted, "\n"))
+        if end_col == 2147483647 then
+            sql_lines = vim.api.nvim_buf_get_lines(bufnr, start_row, end_row + 1, false)
+        else
+            sql_lines = vim.api.nvim_buf_get_text(bufnr, start_row, start_col, end_row, end_col + 1, {})
         end
+        formatted = run_formatter(sql_lines)
+        vim.api.nvim_buf_set_text(bufnr, start_row, start_col, end_row, #sql_lines[#sql_lines],
+            formatted)
     end
 end
 
 return M
-
