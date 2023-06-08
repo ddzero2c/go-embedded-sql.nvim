@@ -5,6 +5,10 @@ This neovim plugin formats embedded SQL strings using the sql-formatter tool. It
 ## Installation
 Install the sql-formatter tool globally on your system.
 
+```bash
+npm install -g sql-formatter
+```
+
 Install the plugin using your preferred package manager for neovim. For example, using vim-plug:
 
 ```vim
